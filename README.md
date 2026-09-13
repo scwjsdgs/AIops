@@ -17,21 +17,22 @@
 
 ## 2. 架构图
 
-```mermaid
 flowchart LR
-    subgraph Frontend
-        A[Vue 前端] -- 通过 REST / WebSocket 与]
+    subgraph Frontend[前端层]
+        A[Vue 前端]
     end
-    subgraph Python Agent
-        B[aiops‑agent] -- 调用 Java Back‑End](Java Backend)
+
+    subgraph PythonAgent[AI 大脑]
+        B[aiops-agent]
     end
-    subgraph Java Back‑End
+
+    subgraph JavaBackend[Java 后端]
         C[ops_agent]
     end
-    A -- GET/POST API --> C
-    B -- HTTP 调用 API --> C
+
+    A -- REST / WebSocket --> C
+    B -- HTTP API --> C
     C -- WebSocket 推送 --> A
-```
 
 ---
 
