@@ -1,0 +1,12 @@
+fastapi
+uvicorn[standard]
+httpx
+pydantic-settings
+langchain
+langchain-openai
+langchain-community
+chromadb
+python-multipart
+sse-starlette
+dashscope
+python-dotenv

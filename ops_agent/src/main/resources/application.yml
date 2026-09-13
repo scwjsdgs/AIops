@@ -1,0 +1,135 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: agent-platform
+
+  datasource:
+    # 统一走环境变量覆盖，避免真实密码被提交进版本库。
+    # createDatabaseIfNotExist=true：库不存在时自动建，省掉手工建库这一步。
+    url: ${MYSQL_URL:jdbc:mysql://localhost:3306/agent_platform?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=Asia/Shanghai}
+    username: ${MYSQL_USERNAME:root}
+    password: ${MYSQL_PASSWORD:your_password}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  # 注意：jpa 必须与 datasource 平级。
+  # 之前 jpa 被缩进到 datasource 下面，导致整块配置失效、ddl-auto 不生效。
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    open-in-view: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQL8Dialect
+
+  # 注意：data.redis 与 kafka 必须挂在 spring 下。
+  # 之前它们被缩进到 jwt 下面，导致 Redis/Kafka 配置全部失效。
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      database: 0
+      timeout: 5000ms
+
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: agent-group
+      auto-offset-reset: earliest
+      max-poll-records: 10
+      properties:
+        retry.backoff.ms: 1000
+        reconnect.backoff.ms: 1000
+        spring.json.trusted.packages: "*"
+
+  # 已删除 spring.webflux.base-path: /api
+  # 它会把整个 HTTP 管道包进 ContextPathCompositeHandler，导致所有 Controller
+  # 实际变成 /api/api/xxx，而且 WebSocket 握手和 /actuator/health 会直接 404。
+
+jwt:
+  # HS256 要求密钥至少 256 bit（32 字节）。原值 your-256-bit-secret-for-jwt
+  # 只有 27 字节，登录时会抛 WeakKeyException。生产环境请换成随机串。
+  secret: opsagent-dev-secret-key-please-change-in-prod-32b
+  expiration: 86400000
+
+# 自定义配置
+opsagent:
+  internal:
+    # Python agent 回调 /api/agent/callback/** 时必须携带 X-Internal-Token，
+    # 与 aiops-agent/.env 的 JAVA_INTERNAL_TOKEN 保持一致。
+    token: ${OPSAGENT_INTERNAL_TOKEN:dev-internal-token}
+  agent:
+    url: http://localhost:5000
+    connect-timeout: 3000
+    # /api/agent/start 改为立即返回 202，无需再等 30 秒
+    read-timeout: 10000
+  tools:
+    # 允许 AI agent 调用的工具白名单。
+    # generic_command（可执行任意 shell 命令）刻意不在其中：工具本身保留，
+    # 仍会出现在 /api/tools/list 里，但不暴露给大模型。
+    agent-exposed: restart_service,scale_up,query_log,get_status,rollback,clear_cache,request_human_approval
+  approval:
+    # auto：立即批准但落审计记录；manual：挂起等待外部审批（需要前端配合）
+    mode: auto
+  log:
+    # SSH 取日志失败时的本地降级目录，留空表示不降级
+    local-dir: ""
+    # journalctl 的 unit 名映射，%s 会替换成服务名
+    unit-pattern: "%s"
+  cache:
+    # exec：进 Pod 执行清理命令；restart：重启等价清理；ssh：走 SSH 执行
+    mode: exec
+    clear-command: "rm -rf /tmp/app-cache/*"
+  kubernetes:
+    namespace: default
+  ssh:
+    host: localhost
+    port: 22
+    username: root
+    password: your_password
+
+logging:
+  level:
+    com.opsagent: DEBUG
+    io.fabric8.kubernetes: INFO
+
+# Resilience4j 配置
+resilience4j:
+  retry:
+    instances:
+      agentCall:
+        # 从 3 改成 1：agent 启动不是幂等操作，重试等于重复拉起整个 ReAct 循环
+        maxAttempts: 1
+        waitDuration: 2s
+      toolExecution:
+        # 从 3 改成 1：重启/扩缩容被重试就是线上事故
+        maxAttempts: 1
+        waitDuration: 1s
+  circuitbreaker:
+    instances:
+      agentCall:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+  bulkhead:
+    instances:
+      agentCall:
+        maxConcurrentCalls: 5
+        maxWaitDuration: 1s
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  metrics:
+    tags:
+      application: agent-platform
+  prometheus:
+    metrics:
+      export:
+        enabled: true

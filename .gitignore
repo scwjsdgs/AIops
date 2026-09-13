@@ -1,0 +1,25 @@
+# 忽略 AI 工具配置
+.claude/
+.claudeignore
+
+# Java 编译产物
+target/
+*.class
+*.jar
+*.war
+
+# Python 缓存
+__pycache__/
+*.pyc
+venv/
+env/
+
+# 前端依赖
+node_modules/
+dist/
+build/
+
+# 敏感环境变量
+.env
+.env.local
+application-prod.yml

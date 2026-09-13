@@ -1,0 +1,21 @@
+# 常见故障处理 SOP
+
+## 1. CPU 过高
+- 检查是否有异常进程占用 CPU：top -c
+- 如果是 Java 应用，使用 jstack 查看线程堆栈
+- 临时措施：重启服务（systemctl restart <service>）
+- 长期措施：增加实例数或优化代码
+
+## 2. 内存溢出 (OutOfMemory)
+- 查看堆栈日志：grep "OutOfMemoryError" /var/log/app.log
+- 增加 JVM 堆内存：-Xmx2048m
+- 如果频繁发生，考虑扩容或检查内存泄漏
+
+## 3. 服务超时 (Timeout)
+- 检查数据库连接池是否满
+- 检查下游服务是否正常
+- 临时增加超时时间，或重启服务
+
+## 4. 磁盘满
+- 清理日志：find /var/log -name "*.log" -mtime +7 -delete
+- 扩容磁盘分区
