@@ -17,6 +17,7 @@
 
 ## 2. 架构图
 
+```mermaid
 flowchart LR
     subgraph Frontend[前端层]
         A[Vue 前端]
@@ -33,6 +34,7 @@ flowchart LR
     A -- REST / WebSocket --> C
     B -- HTTP API --> C
     C -- WebSocket 推送 --> A
+```
 
 ---
 
