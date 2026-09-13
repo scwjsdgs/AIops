@@ -5,8 +5,9 @@
 # Java 编译产物
 target/
 *.class
+# *.jar   ← 删掉这行，或改成下面这样
 *.jar
-*.war
+!.mvn/wrapper/maven-wrapper.jar
 
 # Python 缓存
 __pycache__/
@@ -23,3 +24,18 @@ build/
 .env
 .env.local
 application-prod.yml
+
+# IDE
+.idea/
+.vscode/
+*.iml
+.DS_Store
+
+# 日志
+*.log
+logs/
+
+# Maven
+.mvn/timing.properties
+
+CLAUDE.md
